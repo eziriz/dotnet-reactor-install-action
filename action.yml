@@ -1,0 +1,61 @@
+name: 'Install .NET Reactor'
+author: Eziriz
+description: 'Automatically downloads and installs .NET Reactor based on the operating system of the GitHub Actions runner.'
+
+inputs:
+  version:
+    description: 'Specify the .NET Reactor version to install. If unspecified, the latest version will be used.'
+    required: false
+  license:
+    description: 'Provide the .NET Reactor license as either a file path or a base64-encoded string. If no license is defined .NET Reactor runs as demo version.'
+    required: false
+
+runs:
+  using: "composite"
+  steps:
+    - name: Download and Extract .NET Reactor
+      run: |
+        os_name=$(echo ${{ runner.os }} | tr '[:upper:]' '[:lower:]')
+        
+        exe_name="dotNET_Reactor"
+        if [[ "${{ runner.os }}" == "Windows" ]]; then
+          exe_name="dotNET_Reactor.Console.exe"
+        fi
+        
+        download_url="https://raw.githubusercontent.com/eziriz/ReactorAction/main/versions/${os_name}_"
+        
+        if [ -n "${{ inputs.version }}" ]; then
+          version_formatted=$(echo "${{ inputs.version }}" | sed 's/\./_/g')
+          download_url="${download_url}${version_formatted}.zip"
+          extract_dir="dotnet_reactor_${os_name}_${version_formatted}"
+        else
+          download_url="${download_url}latest.zip"
+          extract_dir="dotnet_reactor_${os_name}_latest"
+        fi
+        
+        if [ ! -f "$extract_dir/$exe_name" ]; then
+          echo "Downloading .NET Reactor ($download_url)..."
+          curl -L $download_url -o dotNetReactor.zip || { echo "Download failed"; exit 1; }
+          
+          echo "Unzipping .NET Reactor to ${extract_dir}..."
+          if [ "${{ runner.os }}" = "Windows" ]; then
+            7z x dotNetReactor.zip -o./${extract_dir} || { echo "Unzip failed"; exit 1; }
+          else
+            unzip dotNetReactor.zip -d ${extract_dir} || { echo "Unzip failed"; exit 1; }
+          fi
+        else
+          echo "${extract_dir}/${$exe_name} already exists; skipping download."
+        fi
+        
+        echo "DOTNETREACTORROOT=$PWD/${extract_dir}" >> $GITHUB_ENV
+      shell: bash
+    - name: Configure License
+      run: |
+        if [ -n "${{ inputs.license }}" ]; then
+          if echo "${{ inputs.license }}" | grep -Eq '(\.license|\.v3lic)$'; then
+            cp "${{ inputs.license }}" ${{ env.DOTNETREACTORROOT }}/license.v3lic
+          else
+            echo "${{ inputs.license }}" | base64 --decode > ${{ env.DOTNETREACTORROOT }}/license.v3lic
+          fi
+        fi
+      shell: bash
