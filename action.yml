@@ -1,61 +1,76 @@
-name: 'Install .NET Reactor'
+name: 'Run .NET Reactor'
 author: Eziriz
-description: 'Automatically downloads and installs .NET Reactor based on the operating system of the GitHub Actions runner.'
-
+description: 'Runs .NET Reactor based on the operating system of the GitHub Actions runner.'
+branding:
+  icon: 'reactor-icon.png'
+  color: 'white'
 inputs:
-  version:
-    description: 'Specify the .NET Reactor version to install. If unspecified, the latest version will be used.'
+  project_file:
+    description: 'Path to the .NET Reactor project file.'
     required: false
-  license:
-    description: 'Provide the .NET Reactor license as either a file path or a base64-encoded string. If no license is defined .NET Reactor runs as demo version.'
+  input_path:
+    description: 'Input path of the .NET assembly to obfuscate.'
+    required: false
+  output_path:
+    description: 'Output path for the obfuscated .NET assembly.'
+    required: false
+  additional_arguments:
+    description: '(Additional) command-line parameters.'
     required: false
 
 runs:
   using: "composite"
   steps:
-    - name: Download and Extract .NET Reactor
+    - name: Check and Install .NET Reactor if needed
       run: |
         os_name=$(echo ${{ runner.os }} | tr '[:upper:]' '[:lower:]')
+        reactor_dir="${{ env.DOTNETREACTORROOT }}"
         
         exe_name="dotNET_Reactor"
         if [[ "${{ runner.os }}" == "Windows" ]]; then
           exe_name="dotNET_Reactor.Console.exe"
         fi
         
-        download_url="https://raw.githubusercontent.com/eziriz/ReactorAction/main/versions/${os_name}_"
-        
-        if [ -n "${{ inputs.version }}" ]; then
-          version_formatted=$(echo "${{ inputs.version }}" | sed 's/\./_/g')
-          download_url="${download_url}${version_formatted}.zip"
-          extract_dir="dotnet_reactor_${os_name}_${version_formatted}"
-        else
-          download_url="${download_url}latest.zip"
+        if [ ! -f "$reactor_dir/$exe_name" ]; then
+          echo "Installing latest .NET Reactor version..."
+          
           extract_dir="dotnet_reactor_${os_name}_latest"
-        fi
-        
-        if [ ! -f "$extract_dir/$exe_name" ]; then
+          download_url="https://raw.githubusercontent.com/eziriz/ReactorAction/main/versions/${os_name}_latest.zip"
+          
           echo "Downloading .NET Reactor ($download_url)..."
           curl -L $download_url -o dotNetReactor.zip || { echo "Download failed"; exit 1; }
-          
+
           echo "Unzipping .NET Reactor to ${extract_dir}..."
           if [ "${{ runner.os }}" = "Windows" ]; then
             7z x dotNetReactor.zip -o./${extract_dir} || { echo "Unzip failed"; exit 1; }
           else
             unzip dotNetReactor.zip -d ${extract_dir} || { echo "Unzip failed"; exit 1; }
           fi
+          
+          echo "DOTNETREACTORROOT=$PWD/${extract_dir}" >> $GITHUB_ENV          
+        fi
+      shell: bash
+
+    - name: Execute .NET Reactor
+      run: |
+        command="${{ env.DOTNETREACTORROOT }}/dotNET_Reactor"
+        
+        if [[ "${{ runner.os }}" == "Windows" ]]; then
+          command="${{ env.DOTNETREACTORROOT }}/dotNET_Reactor.Console.exe"
         else
-          echo "${extract_dir}/${$exe_name} already exists; skipping download."
+          chmod +x "$command"
         fi
         
-        echo "DOTNETREACTORROOT=$PWD/${extract_dir}" >> $GITHUB_ENV
-      shell: bash
-    - name: Configure License
-      run: |
-        if [ -n "${{ inputs.license }}" ]; then
-          if echo "${{ inputs.license }}" | grep -Eq '(\.license|\.v3lic)$'; then
-            cp "${{ inputs.license }}" ${{ env.DOTNETREACTORROOT }}/license.v3lic
-          else
-            echo "${{ inputs.license }}" | base64 --decode > ${{ env.DOTNETREACTORROOT }}/license.v3lic
-          fi
-        fi
+        args=""
+
+        # Dynamically build arguments
+        [[ -n "${{ inputs.input_path }}" ]] && args+=" -file '${{ inputs.input_path }}'"
+        [[ -n "${{ inputs.project_file }}" ]] && args+=" -project '${{ inputs.project_file }}'"
+        [[ -n "${{ inputs.output_path }}" ]] && args+=" -targetfile '${{ inputs.output_path }}'"
+        [[ -n "${{ inputs.additional_arguments }}" ]] && args+=" ${{ inputs.additional_arguments }}"
+        
+        echo "$command $args"
+        
+        full_command="$command $args"
+        eval $full_command
       shell: bash
