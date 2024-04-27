@@ -2,8 +2,8 @@ name: '.NET Reactor Install'
 author: Eziriz
 description: 'Automatically downloads and installs .NET Reactor based on the operating system of the GitHub Actions runner.'
 branding:
-  icon: 'reactor-icon.png'
-  color: 'white'
+  icon: 'shield'
+  color: 'blue' 
 inputs:
   version:
     description: 'Specify the .NET Reactor version to install. If unspecified, the latest version will be used.'
