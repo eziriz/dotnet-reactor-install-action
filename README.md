@@ -1,7 +1,7 @@
 
 # .NET Reactor Install Action
 
-This is the .NET Reactor Install Action. It installs .NET Reactor and allows you to set up a license if needed. You also need the .NET Reactor Run Action to use .NET Reactor.
+This is the .NET Reactor Install Action. It installs .NET Reactor and allows you to set up a license if needed. You also need the [.NET Reactor Run Action](https://github.com/marketplace/actions/net-reactor-run) to use .NET Reactor.
 
 ## Action 1: 'Install .NET Reactor'
 
@@ -17,7 +17,7 @@ This action downloads and installs .NET Reactor based on the operating system of
 ```yaml
 steps:
 - name: Install .NET Reactor
-  uses: eziriz/dotnet-reactor-install-action@v1.0.0
+  uses: eziriz/dotnet-reactor-install-action@v1.0.2
   with:
     version: '6.9.8.0'
     license: ${{ secrets.NET_REACTOR_LICENSE }}
@@ -39,7 +39,7 @@ This action runs .NET Reactor to obfuscate .NET assemblies. It uses the configur
 ```yaml
 steps:
 - name: Run .NET Reactor
-  uses: eziriz/dotnet-reactor-run-action@v1.0.0
+  uses: eziriz/dotnet-reactor-run-action@v1.0.2
   with:
     input_path: '$GITHUB_WORKSPACE\path\to\assembly.dll'
     output_path: '$GITHUB_WORKSPACE\path\to\obfuscated\<AssemblyFileName>'
@@ -62,7 +62,7 @@ jobs:
     - uses: actions/checkout@v3
 
     - name: Install .NET Reactor
-      uses: eziriz/dotnet-reactor-install-action@v1.0.0
+      uses: eziriz/dotnet-reactor-install-action@v1.0.2
       with:
         license: ${{ secrets.NET_REACTOR_LICENSE }}
 
@@ -70,7 +70,7 @@ jobs:
       run: dotnet build -c Release
 
     - name: Run .NET Reactor
-      uses: eziriz/dotnet-reactor-run-action@v1.0.0
+      uses: eziriz/dotnet-reactor-run-action@v1.0.2
       with:
         input_path: '$GITHUB_WORKSPACE\bin\Release\myapp.dll'
         output_path: '$GITHUB_WORKSPACE\bin\Release\obfuscated\<AssemblyFileName>'
