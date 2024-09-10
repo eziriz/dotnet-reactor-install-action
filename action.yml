@@ -25,17 +25,30 @@ runs:
         fi
         
         download_url="https://raw.githubusercontent.com/eziriz/ReactorAction/main/versions/${os_name}_"
+        download_url_2="https://www.eziriz.com/downloads/versions/${os_name}_"
         
         if [ -n "${{ inputs.version }}" ]; then
           version_formatted=$(echo "${{ inputs.version }}" | sed 's/\./_/g')
           download_url="${download_url}${version_formatted}.zip"
+          download_url_2="${download_url_2}${version_formatted}.zip"
           extract_dir="dotnet_reactor_${os_name}_${version_formatted}"
         else
           download_url="${download_url}latest.zip"
+          download_url_2="${download_url_2}latest.zip"
           extract_dir="dotnet_reactor_${os_name}_latest"
         fi
         
         if [ ! -f "$extract_dir/$exe_name" ]; then
+        
+          if ! curl --head --silent --fail $download_url; then
+            download_url=$download_url_2
+          fi
+
+          if ! curl --head --silent --fail $download_url; then
+            echo "The .NET Reactor version does not exist."
+            exit 1
+          fi
+        
           echo "Downloading .NET Reactor ($download_url)..."
           curl -L $download_url -o dotNetReactor.zip || { echo "Download failed"; exit 1; }
           
@@ -46,7 +59,7 @@ runs:
             unzip dotNetReactor.zip -d ${extract_dir} || { echo "Unzip failed"; exit 1; }
           fi
         else
-          echo "${extract_dir}/${$exe_name} already exists; skipping download."
+          echo "${extract_dir}/${exe_name} already exists; skipping download."
         fi
         
         echo "DOTNETREACTORROOT=$PWD/${extract_dir}" >> $GITHUB_ENV
