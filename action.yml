@@ -1,6 +1,6 @@
 name: '.NET Reactor Install'
 author: Eziriz
-description: 'Downloads and installs a specific .NET Reactor version from GitHub Releases and verifies integrity + authenticity before extracting.'
+description: 'Downloads and installs a specific .NET Reactor version from GitHub Releases and verifies integrity + authenticity.'
 branding:
   icon: 'shield'
   color: 'blue'
@@ -154,3 +154,4 @@ runs:
         else
           echo "${{ inputs.license }}" | b64decode > "${{ env.DOTNETREACTORROOT }}/license.v3lic"
         fi
+
