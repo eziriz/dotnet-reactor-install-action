@@ -9,7 +9,7 @@ This action downloads and installs .NET Reactor based on the operating system of
 
 ### Inputs
 
-- `version`: (Optional) Specify the exact version of .NET Reactor to install, including major, minor, build, and revision numbers (e.g., 7.5.0.0).
+- `version`: (Optional) Specify the exact version of .NET Reactor to install, including major, minor, build, and revision numbers (e.g., 7.7.2.0).
 - `license`: (Optional) Provide the .NET Reactor license as either a file path or a base64-encoded string. Without a license, .NET Reactor will run in demo mode.
 
 ### Example Usage
@@ -19,7 +19,7 @@ steps:
 - name: Install .NET Reactor
   uses: eziriz/dotnet-reactor-install-action@v1
   with:
-    version: '7.5.0.0'
+    version: '7.7.2.0'
     license: ${{ secrets.NET_REACTOR_LICENSE }}
 ```
 
@@ -64,7 +64,7 @@ jobs:
     - name: Install .NET Reactor
       uses: eziriz/dotnet-reactor-install-action@v1
       with:
-        version: '7.5.0.0'
+        version: '7.7.2.0'
         license: ${{ secrets.NET_REACTOR_LICENSE }}
 
     - name: Build Assembly
