@@ -1,0 +1,35 @@
+
+name: Test .NET Reactor Installation
+
+on:
+  workflow_dispatch:
+
+jobs:
+  test-install:
+    strategy:
+      fail-fast: false
+      matrix:
+        os:
+          - windows-latest
+          - ubuntu-latest
+          - macos-15
+          - macos-15-intel
+
+    runs-on: ${{ matrix.os }}
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Install .NET Reactor
+        uses: ./
+        with:
+          version: '7.7.1.0-r1'
+
+      - name: Verify installation
+        shell: bash
+        run: |
+          test -n "$DOTNETREACTORROOT"
+          test -d "$DOTNETREACTORROOT"
+          echo "Installed to: $DOTNETREACTORROOT"
+          ls -la "$DOTNETREACTORROOT"
