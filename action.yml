@@ -29,6 +29,13 @@ runs:
           exit 1
         fi
 
+        # Prevent installation of the incorrectly packaged Windows release.
+        # The corrected package is available as 7.7.1.0-r1.
+        if [[ "$RUNNER_OS" == "Windows" && "$version" == "7.7.1.0" ]]; then
+          echo "::error title=Incorrect .NET Reactor package::The Windows package for version 7.7.1.0 contains .NET Reactor 7.7.0.0 instead of 7.7.1.0. Please use version 7.7.1.0-r1 instead."
+          exit 1
+        fi
+
         # -----------------------------------------------------------------------------
         # What this step does
         # -----------------------------------------------------------------------------
@@ -36,9 +43,12 @@ runs:
         #    The version maps to an immutable GitHub Release tag: v<version> (e.g., v7.5.0.0).
         #
         # 2) Downloads three release assets from the releases repository:
-        #      - <os>_<version>.zip
-        #      - <os>_<version>.zip.sha256
-        #      - <os>_<version>.zip.sha256.sig
+        #      - <os-or-arch>_<base-version>.zip
+        #      - <os-or-arch>_<base-version>.zip.sha256
+        #      - <os-or-arch>_<base-version>.zip.sha256.sig
+        #    On macOS ARM64, the native macos_arm64 package is used from v7.7.0.0.
+        #    For older releases, the existing macos package is used (architecture ignored).
+        #    Revision tags (e.g., v7.7.1.0-r1) use base-version asset names.
         #
         # 3) Verifies authenticity (signature check):
         #    - The .sha256 file is signed (RAW binary signature) and verified using an embedded
@@ -54,17 +64,39 @@ runs:
 
         os_name="$(echo "${RUNNER_OS}" | tr '[:upper:]' '[:lower:]')"
 
+        # Strip a revision suffix only for asset selection, not for the release tag.
+        # For example, v7.7.1.0-r1 contains assets named *_7_7_1_0.zip.
+        base_version="$(echo "$version" | sed -E 's/-r[0-9]+$//')"
+
+        # Native Apple Silicon packages are available starting with 7.7.0.0.
+        # Older releases retain the original macos package name, even on ARM64.
+        asset_os="$os_name"
+        if [[ "$RUNNER_OS" == "macOS" && "${RUNNER_ARCH:-}" == "ARM64" ]]; then
+          if [[ "$base_version" =~ ^([0-9]+)\.([0-9]+)\.[0-9]+\.[0-9]+$ ]]; then
+            major="${BASH_REMATCH[1]}"
+            minor="${BASH_REMATCH[2]}"
+            if (( 10#$major > 7 || (10#$major == 7 && 10#$minor >= 7) )); then
+              asset_os="macos_arm64"
+            fi
+          fi
+        fi
+
         exe_name="dotNET_Reactor"
         if [[ "$RUNNER_OS" == "Windows" ]]; then
           exe_name="dotNET_Reactor.Console.exe"
         fi
 
+        # Keep the full release version in the extraction directory so revisions
+        # cannot be mistaken for their original releases.
         version_formatted="$(echo "$version" | sed 's/\./_/g')"
-        extract_dir="dotnet_reactor_${os_name}_${version_formatted}"
-        
+        extract_dir="dotnet_reactor_${asset_os}_${version_formatted}"
+
+        # Release revision suffixes do not appear in asset filenames.
+        asset_version_formatted="${base_version//./_}"
+
         # Immutable GitHub Release asset URLs (no API calls)
         tag="v$version"
-        zip_asset="${os_name}_${version_formatted}.zip"
+        zip_asset="${asset_os}_${asset_version_formatted}.zip"
         sha_asset="${zip_asset}.sha256"
         sig_asset="${sha_asset}.sig"
 
